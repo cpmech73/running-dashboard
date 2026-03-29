@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>러닝 데이터 대시보드</title>
+    <!-- Tailwind CSS (스타일) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js (그래프) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome (아이콘) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: Pretendard, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- 상단 네비게이션 -->
+    <nav class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fa-solid fa-person-running text-blue-600 text-2xl mr-3"></i>
+                    <h1 class="text-xl font-bold text-gray-900">주간 Running DATA</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- 사용자 프로필 (몸무게 포함) -->
+                    <div class="flex items-center bg-blue-50 px-4 py-2 rounded-full">
+                        <i class="fa-solid fa-user text-blue-600 mr-2"></i>
+                        <span class="text-sm font-medium text-blue-800">박찬우 (72kg)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- 섹션 헤더 -->
+        <div class="mb-6 flex justify-between items-end">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">최근 러닝 분석</h2>
+                <p class="text-gray-500 text-sm mt-1">데이터 로드 중...</p>
+            </div>
+            <div class="flex gap-3">
+                <button id="updateMainBtn" onclick="openUpdateSelection()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
+                    <i class="fa-solid fa-sync-alt mr-2"></i>업데이트
+                </button>
+                <button id="detailBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
+                    상세 기록 보기
+                </button>
+                <button id="weightBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
+                    몸무게 변화
+                </button>
+            </div>
+        </div>
+
+        <!-- 1. 주요 지표 그리드 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <p class="text-sm text-gray-500 font-medium">거리</p>
+                <h3 class="text-3xl font-bold text-gray-900 mt-1"><span id="mainDistance">0.00</span> <span class="text-base font-normal text-gray-500">km</span></h3>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <p class="text-sm text-gray-500 font-medium">운동 시간</p>
+                <h3 class="text-3xl font-bold text-gray-900 mt-1"><span id="mainDuration">00:00</span></h3>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <p class="text-sm text-gray-500 font-medium">평균 페이스</p>
+                <h3 class="text-3xl font-bold text-gray-900 mt-1"><span id="mainPace">0'00"</span></h3>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <p class="text-sm text-gray-500 font-medium">칼로리 소모</p>
+                <h3 class="text-3xl font-bold text-gray-900 mt-1"><span id="mainCalorie">0</span> <span class="text-base font-normal text-gray-500">kcal</span></h3>
+            </div>
+        </div>
+
+        <!-- AI 분석 리포트 -->
+        <div class="mb-8" id="aiSummarySection">
+            <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+                <div class="flex items-center mb-4">
+                    <i class="fa-solid fa-wand-magic-sparkles text-purple-600 mr-2"></i>
+                    <h3 class="text-xl font-bold text-gray-900">AI 러닝 코치 분석 리포트</h3>
+                </div>
+                <div id="aiSummary" class="text-gray-700 leading-relaxed min-h-[100px]">데이터를 분석 중입니다...</div>
+            </div>
+        </div>
+
+        <!-- 로그 테이블 -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-900">전체 러닝 로그</h3>
+                <span class="text-xs text-gray-400 font-medium">Sessions: <span id="totalSessions">0</span></span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-gray-50 text-gray-500 uppercase text-[11px]">
+                        <tr>
+                            <th class="px-4 py-3 text-center">날짜</th>
+                            <th class="px-4 py-3 text-center">거리</th>
+                            <th class="px-4 py-3 text-center">시간</th>
+                            <th class="px-4 py-3 text-center">페이스</th>
+                            <th class="px-4 py-3 text-center">심박수</th>
+                            <th class="px-4 py-3 text-center">케이던스</th>
+                            <th class="px-4 py-3 text-center">메모</th>
+                        </tr>
+                    </thead>
+                    <tbody id="runningLogBody" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 몸무게 섹션 (평상시 숨김) -->
+        <div id="weightSection" class="mt-12 hidden">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">몸무게 변화 추이</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                    <p class="text-sm text-gray-500 font-medium">현재 몸무게</p>
+                    <h3 class="text-3xl font-bold text-gray-900 mt-1" id="weightCurrent">0 kg</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                    <p class="text-sm text-gray-500 font-medium">총 감량</p>
+                    <h3 class="text-3xl font-bold text-purple-600 mt-1" id="weightDiff">0 kg</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                    <p class="text-sm text-gray-500 font-medium">목표 달성률</p>
+                    <h3 class="text-3xl font-bold text-green-600 mt-1" id="weightProgress">0%</h3>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3">날짜</th>
+                            <th class="px-4 py-3 text-center">몸무게</th>
+                            <th class="px-4 py-3 text-center">BMI</th>
+                            <th class="px-4 py-3 text-center">체지방률</th>
+                        </tr>
+                    </thead>
+                    <tbody id="weightLogBodyMain" class="divide-y"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- 상세 분석 모달 -->
+    <div id="detailModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold" id="modalTitle">트렌드 분석</h2>
+                <button onclick="closeDetail()" class="text-gray-400 hover:text-black"><i class="fa-solid fa-xmark text-2xl"></i></button>
+            </div>
+            <div id="modalChartsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 차트들이 여기에 렌더링됨 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 업데이트 모달 -->
+    <div id="updateSelectionModal" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl p-6 max-w-md w-full">
+            <h3 class="text-xl font-bold mb-4 text-center">데이터 업데이트</h3>
+            <input type="file" id="csvImport" accept=".csv" class="hidden" onchange="handleCSVImport(event)">
+            <button onclick="document.getElementById('csvImport').click()" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold mb-3">CSV 파일 불러오기</button>
+            <button onclick="closeUpdateSelection()" class="w-full py-2 text-gray-500">취소</button>
+        </div>
+    </div>
+
+    <script>
+        let allRecords = [];
+        const HEIGHT = 1.748; // 174.8cm
+        const GOAL_WEIGHT = 68.0;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            fetch('runningdata.csv')
+                .then(res => res.text())
+                .then(csv => {
+                    allRecords = parseRunningCSV(csv.trim().split('\n'));
+                    updateDashboard(allRecords);
+                })
+                .catch(err => console.error("CSV 로드 실패:", err));
+        });
+
+        function parseRunningCSV(lines) {
+            return lines.slice(1).filter(l => l.trim()).map(line => {
+                const p = line.split(',');
+                if (p.length < 4) return null;
+                const d = new Date(p[0].trim().replace(/\./g, '-'));
+                return {
+                    timestamp: d.getTime(),
+                    dateStr: p[0].trim(),
+                    weight: p[1] || "72",
+                    duration: p[2] || "0",
+                    distance: p[3] || "0",
+                    meanSpeed: p[4] || "0",
+                    cadence: p[5] || "0",
+                    pace: (p[6] || "").replace(/"/g, ''),
+                    maxHR: p[7] || "0",
+                    meanHR: p[8] || "0",
+                    calorie: p[9] || "0",
+                    memo: p[10] || ""
+                };
+            }).filter(r => r && !isNaN(r.timestamp)).sort((a,b) => b.timestamp - a.timestamp);
+        }
+
+        function updateDashboard(data) {
+            if (data.length === 0) return;
+            const latest = data[0];
+            
+            document.getElementById('mainDistance').textContent = latest.distance;
+            document.getElementById('mainDuration').textContent = latest.duration + "분";
+            document.getElementById('mainPace').textContent = latest.pace;
+            document.getElementById('mainCalorie').textContent = latest.calorie;
+            document.getElementById('totalSessions').textContent = data.length;
+            
+            updateAISummary(latest);
+            renderLogTable(data);
+            renderWeightData(data);
+        }
+
+        function updateAISummary(latest) {
+            const hr = parseInt(latest.meanHR);
+            const cad = parseInt(latest.cadence);
+            let coaching = "";
+            
+            if (hr >= 155) coaching = "심박수가 너무 높습니다! <strong>Zone 2 (140-150)</strong>로 낮춰서 엔진을 키우세요.";
+            else coaching = "적절한 강도입니다. 이 페이스를 유지하며 기초 체력을 쌓으세요.";
+            
+            if (cad < 165) coaching += `<br>케이던스가 낮습니다. 보폭을 줄이고 발을 더 빠르게 굴려 175를 목표로 하세요.`;
+
+            document.getElementById('aiSummary').innerHTML = `
+                <p class="font-bold text-red-600 mb-2">오늘의 진단: ${hr >= 155 ? '강도 과다' : '적정 훈련'}</p>
+                <p class="text-sm">${coaching}</p>
+                <p class="mt-3 text-xs text-blue-600 font-bold">"느리게 뛰는 날을 제대로 해야 진짜 실력이 늡니다."</p>
+            `;
+        }
+
+        function renderLogTable(data) {
+            const html = data.map(r => `
+                <tr class="hover:bg-blue-50/50">
+                    <td class="px-4 py-4 text-center font-bold">${r.dateStr.slice(5)}</td>
+                    <td class="px-4 py-4 text-center text-blue-600 font-bold">${r.distance}km</td>
+                    <td class="px-4 py-4 text-center">${r.duration}분</td>
+                    <td class="px-4 py-4 text-center font-bold">${r.pace}</td>
+                    <td class="px-4 py-4 text-center text-red-500">${r.meanHR}</td>
+                    <td class="px-4 py-4 text-center">${r.cadence}</td>
+                    <td class="px-4 py-4 text-xs text-gray-400 italic">${r.memo}</td>
+                </tr>
+            `).join('');
+            document.getElementById('runningLogBody').innerHTML = html;
+        }
+
+        function renderWeightData(data) {
+            const weights = data.filter(r => r.weight && parseFloat(r.weight) > 0);
+            if (weights.length === 0) return;
+            
+            const current = parseFloat(weights[0].weight);
+            const start = parseFloat(weights[weights.length-1].weight);
+            const diff = (current - start).toFixed(1);
+            const progress = Math.min(100, Math.max(0, ((start - current) / (start - GOAL_WEIGHT)) * 100)).toFixed(1);
+
+            document.getElementById('weightCurrent').textContent = current + " kg";
+            document.getElementById('weightDiff').textContent = (diff > 0 ? '+' : '') + diff + " kg";
+            document.getElementById('weightProgress').textContent = progress + "%";
+
+            const tableHtml = weights.map(r => {
+                const bmi = (parseFloat(r.weight) / (HEIGHT * HEIGHT)).toFixed(1);
+                const bf = (1.2 * bmi - 10.1).toFixed(1);
+                return `<tr><td class="px-4 py-2">${r.dateStr}</td><td class="text-center font-bold">${r.weight}</td><td class="text-center">${bmi}</td><td class="text-center">${bf}%</td></tr>`;
+            }).join('');
+            document.getElementById('weightLogBodyMain').innerHTML = tableHtml;
+        }
+
+        function openUpdateSelection() { document.getElementById('updateSelectionModal').classList.remove('hidden'); }
+        function closeUpdateSelection() { document.getElementById('updateSelectionModal').classList.add('hidden'); }
+        
+        function openDetail() {
+            document.getElementById('detailModal').classList.remove('hidden');
+            const grid = document.getElementById('modalChartsGrid');
+            grid.innerHTML = `
+                <div class="h-64 bg-gray-50 rounded p-4"><canvas id="c1"></canvas></div>
+                <div class="h-64 bg-gray-50 rounded p-4"><canvas id="c2"></canvas></div>
+                <div class="h-64 bg-gray-50 rounded p-4"><canvas id="c3"></canvas></div>
+                <div class="h-64 bg-gray-50 rounded p-4"><canvas id="c4"></canvas></div>
+            `;
+            
+            const sorted = [...allRecords].sort((a,b) => a.timestamp - b.timestamp);
+            const labels = sorted.map(r => r.dateStr.slice(5));
+            
+            setTimeout(() => {
+                new Chart(document.getElementById('c1'), { type: 'line', data: { labels, datasets: [{ label: '거리(km)', data: sorted.map(r => r.distance), borderColor: '#2563eb' }] } });
+                new Chart(document.getElementById('c2'), { type: 'line', data: { labels, datasets: [{ label: '심박수(avg)', data: sorted.map(r => r.meanHR), borderColor: '#dc2626' }] } });
+                new Chart(document.getElementById('c3'), { type: 'line', data: { labels, datasets: [{ label: '케이던스', data: sorted.map(r => r.cadence), borderColor: '#9333ea' }] } });
+                new Chart(document.getElementById('c4'), { type: 'line', data: { labels, datasets: [{ label: '몸무게(kg)', data: sorted.map(r => r.weight), borderColor: '#16a34a' }] } });
+            }, 100);
+        }
+        function closeDetail() { document.getElementById('detailModal').classList.add('hidden'); }
+        
+        document.getElementById('weightBtn').onclick = () => {
+            const sec = document.getElementById('weightSection');
+            sec.classList.toggle('hidden');
+            sec.scrollIntoView({ behavior: 'smooth' });
+        };
+
+        function handleCSVImport(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                allRecords = parseRunningCSV(evt.target.result.trim().split('\n'));
+                updateDashboard(allRecords);
+                closeUpdateSelection();
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
